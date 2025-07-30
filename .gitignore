@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.p~
+*.swp
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# Django files
+db.sqlite3
+*.sqlite3
+*.log
+*.pot
+*.pyc
+
+# Migrations (если хочешь не отслеживать их — но **лучше сохранять**!)
+# */migrations/__pycache__/
+# */migrations/*.py[cod]
+# */migrations/*.py~
+
+# IDEs
+.vscode/
+.idea/
+*.code-workspace
+
+# macOS
+.DS_Store
+
+# Byte-compiled / packages
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Pip
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Coverage reports
+htmlcov/
+.coverage
+.tox/
+.nox/
+.cache/
+.pytest_cache/
+.coverage.*
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# mypy / pylint / etc
+.mypy_cache/
+.dmypy.json
+.pyre/
+
+# Environments
+.env
+.env.*
