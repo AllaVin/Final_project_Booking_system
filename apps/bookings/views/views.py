@@ -10,20 +10,28 @@ from apps.announcements.permissions import IsOwnerOrReadOnly
 from apps.bookings.models.models import Booking
 from apps.bookings.serializers.serializers import BookingSerializer, BookingCreateUpdateSerializer
 
-
+# Базовый queryset: все бронирования с подгрузкой связанных моделей объявления и пользователя
 class BookingViewSet(viewsets.ModelViewSet):
     queryset = Booking.objects.all().select_related('announcement', 'user')
+    # Доступ только для авторизованных пользователей, с кастомной проверкой прав
     permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    # Подключаем фильтрацию по полям
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['status']  # Фильтр по статусу
 
     def get_serializer_class(self):
+        """Определяет, какой сериализатор использовать в зависимости от действия.
+               - При создании/обновлении используется BookingCreateUpdateSerializer.
+               - Во всех остальных случаях — BookingSerializer (для чтения)."""
         if self.action in ['create', 'update', 'partial_update']:
             return BookingCreateUpdateSerializer
         return BookingSerializer
 
     def get_queryset(self):
-        """Фильтрация по роли: тенант — свои брони, лендлорд — брони по его объявлениям."""
+        """Возвращает queryset с учетом роли пользователя:
+        - tenant: только его собственные брони
+        - landlord: только брони по объявлениям, принадлежащим ему
+        """
         user = self.request.user
         if user.role == 'tenant':
             return Booking.objects.filter(user=user).select_related('announcement', 'user')
@@ -32,7 +40,11 @@ class BookingViewSet(viewsets.ModelViewSet):
         return Booking.objects.none()
 
     def perform_create(self, serializer):
-        """Создание брони с проверкой роли и запретом бронировать своё объявление."""
+        """Создает бронирование с дополнительными проверками:
+        - Только tenant может бронировать.
+        - Нельзя бронировать свое собственное объявление.
+        - Дата начала бронирования не может быть в прошлом.
+        После проверок сохраняет бронь со статусом 'new'."""
         user = self.request.user
         announcement = serializer.validated_data.get('announcement')
 
@@ -47,7 +59,10 @@ class BookingViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['patch'])
     def change_status(self, request, pk=None):
-        """Универсальный метод для смены статуса бронирования."""
+        """Позволяет landlord изменять статус брони:
+                - confirm: подтвердить бронирование (только для новых броней)
+                - reject: отклонить бронирование (только для новых броней)
+                Только владелец объявления (landlord) может менять статус."""
         booking = self.get_object()
         action = request.data.get('action')  # 'confirm', 'reject'
         user = request.user

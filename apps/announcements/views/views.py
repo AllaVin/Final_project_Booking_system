@@ -10,18 +10,24 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Count
 
+# Class - на просмотр объявлений
+class AnnouncementViewSet(viewsets.ModelViewSet): # viewsets.ModelViewSet - это готовый класс из DRF, который
+                                                    # автоматически даёт полный набор действий:
+                                                    #  list, retrieve, create, update, partial_update, destroy.
 
-class AnnouncementViewSet(viewsets.ModelViewSet):
-    queryset = Announcement.objects.all()
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]  # доступ только авторизованным
+    queryset = Announcement.objects.all() # queryset - базовый набор данных
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]  # permission_classes - доступ только авторизованным пользователям
 
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter] # filter_backends -
+                                                    # DjangoFilterBackend — для сложной фильтрации п параметрам , например цена / кол-во комнат
+                                                    # SearchFilter — для поиска по ключевым словам
+                                                    # OrderingFilter — для сортировки результатов
     filterset_class = AnnouncementFilter
     search_fields = ['title', 'description']  # поиск по ключевым словам
     ordering_fields = ['price', 'created_at', 'review_count']  # сортировка по цене, дате и отзывам
     ordering = ['-review_count']  # сортировка по умолчанию: популярные (по кол-ву отзывов)
 
-    def get_serializer_class(self):
+    def get_serializer_class(self): # определяем какй сериализатор будет работать в зависимости от запроса GET vs POST/PUT/PATCH
         # Для GET-запросов возвращаем сериализатор с вложенными данными
         if self.action in ['list', 'retrieve']:
             return AnnouncementSerializer
@@ -45,6 +51,7 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
         # фильтруем объявления:
         else:
             base_qs = base_qs.filter(status='active') # → берём только активные объявления (для арендаторов).
+
         # добавляем аннотацию (.annotate): количество отзывов
         return base_qs.annotate(review_count=Count('booking__review')) # Count('booking__review') — считаем количество отзывов через связанную модель:
                                                                        # booking → все бронирования, связанные с этим объявлением;
